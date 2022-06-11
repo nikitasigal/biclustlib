@@ -1,6 +1,6 @@
 import multiprocessing
 import os.path
-from os.path import join
+from os.path import join, dirname
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -165,15 +165,15 @@ class GeneExpressionBenchmark:
         return self
 
     def perform_goea(self,
-                     gaf_path: str,
-                     obo_path: str,
-                     alphas: list[float]
+                     gaf_path: str = join(dirname(__file__), 'util', 'sgd.gaf'),
+                     obo_path: str = join(dirname(__file__), 'util', 'go-basic.obo'),
+                     alphas: list[float] = (.05, .01, .005, .0001, .00001)
                      ) -> any:
         """
         Perform GO Enrichment Analysis for each bicluster in each algorithm.
 
-        :param gaf_path: A path to a .gaf associations file.
-        :param obo_path: A path to a .obo GO Basic or GO Slim annotations file.
+        :param gaf_path: A path to a .gaf associations file. Defaults to Yeast.
+        :param obo_path: A path to a .obo GO Basic or GO Slim annotations file. Defaults to go-basic.obo
         :param alphas: A list of significance level. For each significance level an enrichment rate will be calculated.
         :return: self
         """
@@ -206,7 +206,7 @@ class GeneExpressionBenchmark:
         """
 
         GeneExpressionBenchmark._check_dir(report_dir)
-        GeneExpressionBenchmark._check_dir(join(report_dir, 'detailed'))
+        GeneExpressionBenchmark._check_dir(join(report_dir, 'detailed_metrics'))
         if not hasattr(self, 'overall_execution_time'):
             print('Benchmark was never executed')
             print('See .run() method')
