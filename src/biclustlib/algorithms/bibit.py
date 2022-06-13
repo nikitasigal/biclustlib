@@ -21,11 +21,14 @@
 from itertools import combinations
 
 import numpy as np
-from gmpy import popcount
 from sklearn.utils.validation import check_array
 
 from ._base import BaseBiclusteringAlgorithm
 from ..models import Bicluster, Biclustering
+
+
+def _popcount(x: int) -> int:
+    return bin(x).count('1')
 
 
 class BitPatternBiclusteringAlgorithm(BaseBiclusteringAlgorithm):
@@ -68,7 +71,7 @@ class BitPatternBiclusteringAlgorithm(BaseBiclusteringAlgorithm):
 
         for ri, rj in combinations(data, 2):
             pattern = np.bitwise_and(ri, rj)
-            pattern_cols = sum(popcount(int(n)) for n in pattern)
+            pattern_cols = sum(_popcount(int(n)) for n in pattern)
 
             if pattern_cols >= self.min_cols and self._is_new(patterns_found, pattern):
                 # rows = [k for k, r in enumerate(data) if self._match(pattern, r)]
