@@ -18,13 +18,12 @@ def asr(biclustering: Biclustering, data: pd.DataFrame) -> dict:
         row_corr = b.transpose().corr(method='spearman').to_numpy()
         col_corr = b.corr(method='spearman').to_numpy()
 
-        rho_gene = sum(np.nan_to_num(row_corr[i, j])
-                       for i in range(rows)
-                       for j in range(i + 1, rows)) / max(1, rows * (rows - 1))
-        rho_condition = sum(np.nan_to_num(col_corr[i, j])
-                            for i in range(cols)
-                            for j in range(i + 1, cols)) / max(1, cols * (cols - 1))
-        results.append(2 * max(rho_gene, rho_condition))
+        rho_gene = (np.nan_to_num(row_corr).sum() - np.nan_to_num(row_corr.diagonal()).sum()) / (
+            max(1, rows * (rows - 1)))
+        rho_condition = (np.nan_to_num(col_corr).sum() - np.nan_to_num(col_corr.diagonal()).sum()) / (
+            max(1, cols * (cols - 1)))
+
+        results.append(max(rho_gene, rho_condition))
     end = default_timer()
     if len(results) == 0:
         results = [-1]

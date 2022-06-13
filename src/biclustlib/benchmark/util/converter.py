@@ -5,27 +5,32 @@ import aiohttp
 
 
 class Converter:
-    def __init__(self):
+    def __init__(self, gene_mapping_path: str = None):
         """
         This is a utility class used to asynchronously convert SGD Systematic Names to SGD IDs,
         which is required to perform GO Enrichment Analysis.
+
+        :param gene_mapping_path: A path to an optional mapping file,
+         containing a dictionary of SGD Systematic Names and their respective IDs.
         """
 
         self.gene_mapping = {}
-        self.gene_mapping_path = join(dirname(__file__), 'benchmark', 'util', 'sgd.mapping')
+        self.gene_mapping_path = gene_mapping_path
         if self.gene_mapping_path:
-            f = open(self.gene_mapping_path)
-            for line in f:
-                sysname, sgdid = line.split()
-                self.gene_mapping[sysname] = sgdid
-            f.close()
+            try:
+                f = open(self.gene_mapping_path)
+                for line in f:
+                    sysname, sgdid = line.split()
+                    self.gene_mapping[sysname] = sgdid
+                f.close()
+            except OSError:
+                raise ValueError(f'File {self.gene_mapping_path} does not exist')
 
     async def convert(self, sysname_list: list) -> list:
         """
         Convert a list of SGD Systematic Names to SGD IDs.
         Works asynchronously, must be awaited.
-        Used a stored gene mapping for optimisation,
-        unknown genes are translated at the speed of around 10 genes per second.
+        Unknown genes are translated at the rate of around 10 genes per second.
 
         :param sysname_list: A list of gene SGD Systematic Names.
         :return: A list of respective SGD IDs.

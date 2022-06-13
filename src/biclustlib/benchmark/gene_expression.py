@@ -56,7 +56,6 @@ class GeneExpressionBenchmark:
     def __init__(self,
                  algorithms: list[Algorithm],
                  raw_data: pd.DataFrame,
-                 n_biclusters: int,
                  internal_metrics: list[str] = METRICS,
                  reduction_level: int = -1):
         """
@@ -64,7 +63,6 @@ class GeneExpressionBenchmark:
 
         :param algorithms: A list of algorithms to be used in the benchmark.
         :param raw_data: The original data from the dataset.
-        :param n_biclusters: The number of biclusters the algorithms are supposed to find.
         :param internal_metrics: A list of internal metrics to be calculated.
             For available metrics see biclustlib.evaluation.internal.METRICS
         :param reduction_level: Biclusterings, that are larger than this amount, will be reduced to it by taking a random sample.
@@ -76,7 +74,6 @@ class GeneExpressionBenchmark:
 
         self.internal_metrics = internal_metrics
 
-        self.n_biclusters = n_biclusters
         self.reduction_level = reduction_level
 
         self.report = {algorithm.name: None for algorithm in self.algorithms}
@@ -165,6 +162,7 @@ class GeneExpressionBenchmark:
         return self
 
     def perform_goea(self,
+                     pop_path: str = join(dirname(__file__), 'util', 'sgd.pop'),
                      gaf_path: str = join(dirname(__file__), 'util', 'sgd.gaf'),
                      obo_path: str = join(dirname(__file__), 'util', 'go-basic.obo'),
                      alphas: list[float] = (.05, .01, .005, .0001, .00001)
@@ -172,13 +170,20 @@ class GeneExpressionBenchmark:
         """
         Perform GO Enrichment Analysis for each bicluster in each algorithm.
 
+        :param pop_path: A path to a file, containing all genes in the genome. Defaults to Yeast
         :param gaf_path: A path to a .gaf associations file. Defaults to Yeast.
         :param obo_path: A path to a .obo GO Basic or GO Slim annotations file. Defaults to go-basic.obo
         :param alphas: A list of significance level. For each significance level an enrichment rate will be calculated.
         :return: self
         """
 
-        goea_study = GOEnrichmentStudy(pop=self.raw_data.index,
+        try:
+            with open(pop_path) as f:
+                population = [line.split()[0] for line in f]
+        except OSError:
+            raise Exception(f'File {pop_path} does not exist')
+
+        goea_study = GOEnrichmentStudy(pop=population,
                                        assoc=GafReader(gaf_path, prt=None).read_gaf(),
                                        obo_dag=GODag(obo_path, prt=None),
                                        methods=['fdr_bh'])
@@ -205,15 +210,16 @@ class GeneExpressionBenchmark:
         :return: A tuple: general report and a dictionary of detailed reports for each metric
         """
 
-        GeneExpressionBenchmark._check_dir(report_dir)
-        GeneExpressionBenchmark._check_dir(join(report_dir, 'detailed_metrics'))
         if not hasattr(self, 'overall_execution_time'):
             print('Benchmark was never executed')
             print('See .run() method')
             return
-        self.plot_times(report_dir)
+
+        GeneExpressionBenchmark._check_dir(report_dir)
+        GeneExpressionBenchmark._check_dir(join(report_dir, 'detailed_metrics'))
+
+        self.plot_execution_times(report_dir)
         self.plot_metrics(report_dir)
-        self.plot_goea(report_dir)
         self.plot_found(report_dir)
 
         report = pd.DataFrame(index=self.report)
@@ -226,17 +232,44 @@ class GeneExpressionBenchmark:
             for detail in 'time', 'avg', 'median', 'std', 'min', 'max':
                 detailed_reports[metric][detail] = [self[algorithm][metric][detail] for algorithm in self]
             detailed_reports[metric].to_csv(join(report_dir, 'detailed_metrics', f'{metric}.csv'))
-        if hasattr(self, 'goea_time'):
-            report['GO Enrichment time'] = [self[algorithm]['enrichment_time'] for algorithm in self]
-            for alpha in self.alphas:
-                report[f'a = {alpha}'] = [self[algorithm][f'a = {alpha}'] for algorithm in self]
-        report.to_csv(join(report_dir, f'report.csv'))
+
+        report.to_csv(join(report_dir, 'report.csv'))
 
         return report, detailed_reports
 
+    def generate_goea_report(self, report_dir: str = 'report') -> pd.DataFrame:
+        """
+        Generate a report on GO Enrichment Analysis results - draw plots and tables.
+
+        :param report_dir: Specify a directory, where the report results will be saved.
+        :return: A dataframe with enrichment results for each algorithm.
+        """
+
+        if not hasattr(self, 'goea_time'):
+            print('GO Enrichment Analysis has not been performed for this benchmark')
+            print('See GeneExpressionBenchmark.perform_goea() method')
+            return
+
+        GeneExpressionBenchmark._check_dir(report_dir)
+        self.plot_enrichment_rates(report_dir)
+
+        report = pd.DataFrame(index=self.report)
+        report['GO Enrichment time'] = [self[algorithm]['enrichment_time'] for algorithm in self]
+        for alpha in self.alphas:
+            report[f'a = {alpha}'] = [self[algorithm][f'a = {alpha}'] for algorithm in self]
+        best_biclusters = [min(self[algorithm]['enriched_biclustering'], key=lambda r: r.p_uncorrected)
+                           for algorithm in self]
+        report['Most enriched term'] = [term.name for term in best_biclusters]
+        report['p-value'] = [term.p_uncorrected for term in best_biclusters]
+        report['Adjusted p-value'] = [term.p_fdr_bh for term in best_biclusters]
+
+        report.to_csv(join(report_dir, 'goea_report.csv'))
+
+        return report
+
     def plot_metrics(self, report_dir: str = 'report') -> None:
         """
-        Draw and save plots for each metric
+        Draw and save plots for each metric and each algorithm
 
         :param report_dir: Specify a directory, where the report results will be saved.
         """
@@ -248,7 +281,6 @@ class GeneExpressionBenchmark:
             return
 
         for i, metric in enumerate(self.internal_metrics):
-            plt.figure(figsize=(len(self) + 1, 5))
             plt.bar(self, [self[algorithm][metric]['avg'] for algorithm in self],
                     yerr=[self[algorithm][metric]['std'] for algorithm in self])
             plt.title(metric)
@@ -257,44 +289,29 @@ class GeneExpressionBenchmark:
             plt.tight_layout()
             plt.savefig(join(report_dir, 'metrics', f'{metric}.png'))
 
-    def plot_times(self, report_dir: str = 'report') -> None:
+    def plot_execution_times(self, report_dir: str = 'report') -> None:
         """
-        Draw and save the plot for execution (and enrichment) times
+        Draw and save the plot of each algorithm's execution time
 
         :param report_dir: Specify a directory, where the report results will be saved.
         """
 
-        GeneExpressionBenchmark._check_dir(report_dir)
         if not hasattr(self, 'overall_execution_time'):
             print('Benchmark was never executed')
             print('See .run() method')
             return
+        GeneExpressionBenchmark._check_dir(report_dir)
 
-        plt.figure(figsize=(len(self) + 1, 5))
-
-        x = np.arange(len(self))
-        times = ['execution_time']
-        if hasattr(self, 'goea_time'):
-            times.append('enrichment_time')
-        bar_width = 1 / (len(times) + 1)
-        for i, time in enumerate(times):
-            y = [self[algorithm][time] for algorithm in self]
-            plt.bar(x + bar_width * i, y, width=bar_width, label=time)
-
-        x_ticks = x + (bar_width * (len(times) - 1) / 2)
-        plt.xticks(x_ticks, self)
-        if hasattr(self, 'goea_time'):
-            plt.title('Execution and GO Enrichment Analysis time')
-        else:
-            plt.title('Execution time')
+        plt.bar(self, [self[algorithm]['execution_time'] for algorithm in self])
+        plt.title('Execution time')
         plt.ylabel('Time (sec)')
 
-        plt.legend()
+        plt.tight_layout()
         plt.savefig(join(report_dir, 'times.png'))
 
-    def plot_goea(self, report_dir: str = 'report') -> None:
+    def plot_enrichment_rates(self, report_dir: str = 'report') -> None:
         """
-        Draw and save the plot of enrichment rates for each significance levels
+        Draw and save the plot of enrichment rates for each significance level
 
         :param report_dir: Specify a directory, where the report results will be saved.
         """
@@ -304,8 +321,6 @@ class GeneExpressionBenchmark:
             print('GO Enrichment Analysis has not been performed for this benchmark')
             print('See GeneExpressionBenchmark.perform_goea() method')
             return
-
-        plt.figure(figsize=(len(self) + 1, 5))
 
         x = np.arange(len(self))
         bar_width = 1 / (len(self.alphas) + 1)
@@ -335,7 +350,6 @@ class GeneExpressionBenchmark:
             print('See GeneExpressionBenchmark.run() method')
             return
 
-        plt.figure(figsize=(len(self) + 1, 5))
         plt.bar(self, [self[algorithm]['n_found'] for algorithm in self])
         plt.title('Number of biclusters found by each algorithm')
 
