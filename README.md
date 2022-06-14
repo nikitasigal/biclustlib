@@ -29,8 +29,7 @@ def discretize_data(raw_data: pd.DataFrame, n_bins: int = 2) -> pd.DataFrame:
 
 
 if __name__ == '__main__':
-    pool = multiprocessing.Pool()
-
+    
     data = load_tavazoie()
     n_biclusters = 10
     reduction_level = 10
@@ -49,14 +48,13 @@ if __name__ == '__main__':
         Algorithm('Spectral', Spectral(n_clusters=data.shape[1] // 2), data + abs(data.min().min()) + 1),
     ]
 
-    tavazoie_benchmark = GeneExpressionBenchmark(algorithms=setup,
-                                                 raw_data=data,
-                                                 reduction_level=reduction_level).run(pool)
+    with multiprocessing.Pool() as pool:
+        tavazoie_benchmark = GeneExpressionBenchmark(algorithms=setup,
+                                                     raw_data=data,
+                                                     reduction_level=reduction_level).run(pool)
     tavazoie_benchmark.generate_report()
 
     tavazoie_benchmark.perform_goea()
     tavazoie_benchmark.generate_goea_report()
-
-    pool.close()
 
 ```

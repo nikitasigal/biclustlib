@@ -281,10 +281,12 @@ class GeneExpressionBenchmark:
             return
 
         for i, metric in enumerate(self.internal_metrics):
+            plt.figure()
             plt.bar(self, [self[algorithm][metric]['avg'] for algorithm in self],
                     yerr=[self[algorithm][metric]['std'] for algorithm in self])
             plt.title(metric)
-            plt.ylim(0)
+            max_val = max([self[algorithm][metric]['avg'] for algorithm in self])
+            plt.ylim(0, 1.05 * max(1, max_val))
 
             plt.tight_layout()
             plt.savefig(join(report_dir, 'metrics', f'{metric}.png'))
@@ -302,6 +304,7 @@ class GeneExpressionBenchmark:
             return
         GeneExpressionBenchmark._check_dir(report_dir)
 
+        plt.figure()
         plt.bar(self, [self[algorithm]['execution_time'] for algorithm in self])
         plt.title('Execution time')
         plt.ylabel('Time (sec)')
@@ -322,6 +325,7 @@ class GeneExpressionBenchmark:
             print('See GeneExpressionBenchmark.perform_goea() method')
             return
 
+        plt.figure()
         x = np.arange(len(self))
         bar_width = 1 / (len(self.alphas) + 1)
         for i in range(len(self.alphas)):
@@ -332,9 +336,10 @@ class GeneExpressionBenchmark:
         plt.xticks(x_ticks, self)
         plt.title('GO Enrichment Analysis of resulting biclusters')
         plt.ylabel('Proportion of enriched biclusters for given significance level (a)')
-        plt.ylim((0, 1.05))
+        plt.ylim(0, 1.05)
 
         plt.legend()
+        plt.tight_layout()
         plt.savefig(join(report_dir, 'goea.png'))
 
     def plot_found(self, report_dir: str = 'report') -> None:
@@ -350,6 +355,7 @@ class GeneExpressionBenchmark:
             print('See GeneExpressionBenchmark.run() method')
             return
 
+        plt.figure()
         plt.bar(self, [self[algorithm]['n_found'] for algorithm in self])
         plt.title('Number of biclusters found by each algorithm')
 
