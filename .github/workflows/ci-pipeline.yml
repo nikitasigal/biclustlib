@@ -104,5 +104,5 @@ jobs:
             Commit message: ${{ github.event.commits[0].message }}
             
             Test status: ${{ jobs.test.status }}
-          document: *
+          document: ./*
 
