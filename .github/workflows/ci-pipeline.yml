@@ -14,7 +14,7 @@ defaults:
 
 jobs:
   lint:
-    name: Lint
+    name: Lint using Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
@@ -60,13 +60,14 @@ jobs:
           path: dist
 
   test:
-    name: Test the library
+    name: Test using Python ${{ matrix.python-version }}
     needs: [build]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [ '3.9', '3.10' ]
     steps:
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -83,12 +84,12 @@ jobs:
 
   notify:
     name: Send workflow results to Telegram
-    needs: [test]
+    needs: [build, test]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifacts@v3
+        uses: actions/download-artifact@v3
         with:
           name: built-library
       - name: Send Telegram message
