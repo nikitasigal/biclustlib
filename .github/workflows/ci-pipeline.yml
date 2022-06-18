@@ -103,6 +103,6 @@ jobs:
             Author: ${{ github.actor }}
             Commit message: ${{ github.event.commits[0].message }}
             
-            Test status: ${{ jobs.test.status }}
+            Test status: ${{ needs.test.status }}
           document: ./*
 
