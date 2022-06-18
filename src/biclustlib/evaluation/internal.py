@@ -49,13 +49,14 @@ def ve(biclustering: Biclustering, data: pd.DataFrame) -> dict:
     results = []
     for bicluster in biclustering.biclusters:
         b = data.iloc[bicluster.rows, bicluster.cols].to_numpy()
+        vg = np.mean(b, axis=0)
         try:
             bs = _standardize(b)
+            vgs = _standardize(vg)
         except Warning:
             results.append(1)
         else:
-            virtual_gene = np.mean(bs, axis=0)
-            results.append(np.sum(np.abs(bs - virtual_gene), axis=None) / (b.shape[0] * b.shape[1]))
+            results.append(np.sum(np.abs(bs - vgs), axis=None) / (b.shape[0] * b.shape[1]))
     end = default_timer()
     if len(results) == 0:
         results = [-1]
@@ -72,13 +73,14 @@ def vet(biclustering: Biclustering, data: pd.DataFrame) -> dict:
     results = []
     for bicluster in biclustering.biclusters:
         b = data.iloc[bicluster.rows, bicluster.cols].to_numpy()
+        vc = np.mean(b, axis=1).reshape(-1, 1)
         try:
             bs = _standardize(b)
+            vcs = _standardize(vc)
         except Warning:
             results.append(1)
         else:
-            virtual_condition = np.mean(bs, axis=1).reshape(-1, 1)
-            results.append(np.sum(np.abs(bs - virtual_condition), axis=None) / (b.shape[0] * b.shape[1]))
+            results.append(np.sum(np.abs(bs - vcs), axis=None) / (b.shape[0] * b.shape[1]))
     end = default_timer()
     if len(results) == 0:
         results = [-1]
