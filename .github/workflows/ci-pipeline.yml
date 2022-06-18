@@ -79,6 +79,8 @@ jobs:
           name: built-library
       - name: Install the library
         run: pip install *.whl
+      - name: Install pytest
+        run: pip install pytest
       - name: Test with pytest
         run: pytest
 
