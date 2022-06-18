@@ -49,7 +49,7 @@ def ve(biclustering: Biclustering, data: pd.DataFrame) -> dict:
     results = []
     for bicluster in biclustering.biclusters:
         b = data.iloc[bicluster.rows, bicluster.cols].to_numpy()
-        vg = np.mean(b, axis=0)
+        vg = np.mean(b, axis=0).reshape(1, -1)
         try:
             bs = _standardize(b)
             vgs = _standardize(vg)
