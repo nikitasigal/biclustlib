@@ -103,7 +103,7 @@ jobs:
   notify:
     name: Send workflow results to Telegram
     needs: [ build, test, lint ]
-    if: contains(['push', 'pull_request'], github.event_name)
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Send notification to Telegram
