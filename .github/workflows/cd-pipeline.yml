@@ -67,6 +67,7 @@ jobs:
   notify:
     name: Send notification to Telegram
     needs: [ check, docker, testpypi ]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/telegram-action@master
