@@ -18,6 +18,8 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -33,6 +35,7 @@ jobs:
       - name: Build and Push to DockerHub
         uses: docker/build-push-action@v3
         with:
+          context: .
           push: true
           tags: user/app:latest
 
@@ -82,4 +85,4 @@ jobs:
             
             CD status: ${{ needs.check.result }}
             Docker status: ${{ needs.docker.result }}
-            TestPyPI status: ${{ needs.pypi.result }}
+            TestPyPI status: ${{ needs.testpypi.result }}
