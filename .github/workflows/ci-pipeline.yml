@@ -134,4 +134,6 @@ jobs:
         with:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           to: ${{ secrets.TELEGRAM_TO }}
+          message: |
+            Build artifacts:
           document: ./*
