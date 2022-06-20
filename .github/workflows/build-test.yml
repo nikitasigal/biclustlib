@@ -62,7 +62,7 @@ jobs:
       - name: Build the library
         run: python -m build
 
-      - name: Save build artifacts
+      - name: Save built library
         uses: actions/upload-artifact@v3
         with:
           name: built-library
@@ -83,10 +83,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Download build artifacts
+      - name: Download built library
         uses: actions/download-artifact@v3
         with:
           name: built-library
@@ -106,7 +107,8 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Send notification to Telegram
+      - name: Send notification on push
+        if: github.event_name == 'push'
         uses: appleboy/telegram-action@master
         with:
           token: ${{ secrets.TELEGRAM_TOKEN }}
@@ -114,15 +116,32 @@ jobs:
           message: |
             New commit in ${{ github.repository }}
             
-            Branch: ${{ github.ref }}
+            Branch: ${ GITHUB_REF_NAME }
             Author: ${{ github.actor }}
             Commit message: ${{ github.event.commits[0].message }}
             
             Lint status: ${{ needs.lint.result }}
-            Build status: ${{ needs.lint.result }}
+            Build status: ${{ needs.build.result }}
             Test status: ${{ needs.test.result }}
 
-      - name: Download build artifacts, if they exist
+      - name: Send notification on pull request
+        if: github.event_name == 'pull_request'
+        uses: appleboy/telegram-action@master
+        with:
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          to: ${{ secrets.TELEGRAM_TO }}
+          message: |
+            New PR in ${{ github.repository }}
+
+            Branch: ${ GITHUB_REF_NAME }
+            Author: ${{ github.actor }}
+            Title: ${{ github.event.pull_request.title }}
+
+            Lint status: ${{ needs.lint.result }}
+            Build status: ${{ needs.build.result }}
+            Test status: ${{ needs.test.result }}      
+
+      - name: Download built library, if it exists
         if: needs.build.result == 'success'
         uses: actions/download-artifact@v3
         with:

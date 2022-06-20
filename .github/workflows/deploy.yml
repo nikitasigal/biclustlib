@@ -11,9 +11,9 @@ defaults:
 jobs:
   check:
     name: Lint, Build and Test the library
-    uses: ./.github/workflows/ci-pipeline.yml
+    uses: .github/workflows/build-test.yml
 
-  docker:
+  dockerhub:
     name: Upload image to DockerHub
     needs: check
     runs-on: ubuntu-latest
@@ -32,35 +32,30 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Download built library
+        uses: actions/download-artifact@v3
+        with:
+          name: built-library
+          path: dist
+
       - name: Build and Push to DockerHub
         uses: docker/build-push-action@v3
         with:
           context: .
+          file: .github/Dockerfile
           push: true
-          tags: drunkvermicelli/biclustlib:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/biclustlib:latest, ${{ secrets.DOCKERHUB_USERNAME }}/biclustlib:${ GITHUB_REF_NAME }
 
   testpypi:
-    name: Build and Publish the library on TestPyPI
+    name: Publish the library on TestPyPI
     needs: check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Download built library
+        uses: actions/download-artifact@v3
         with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build
-
-      - name: Build the library
-        run: python -m build
+          name: built-library
+          path: dist
 
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -71,7 +66,7 @@ jobs:
 
   notify:
     name: Send notification to Telegram
-    needs: [ check, docker, testpypi ]
+    needs: [ check, dockerhub, testpypi ]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -80,9 +75,9 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           to: ${{ secrets.TELEGRAM_TO }}
           message: |
-            New release ${{ github.ref }} in ${{ github.repository }}
+            New release ${ GITHUB_REF_NAME } in ${{ github.repository }}
             Author: ${{ github.actor }}
             
-            CD status: ${{ needs.check.result }}
-            Docker status: ${{ needs.docker.result }}
+            CI status: ${{ needs.check.result }}
+            Docker status: ${{ needs.dockerhub.result }}
             TestPyPI status: ${{ needs.testpypi.result }}

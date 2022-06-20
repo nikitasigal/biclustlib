@@ -5,19 +5,13 @@ RUN apt update && \
 
 RUN python3.9 -m pip install --no-cache-dir --upgrade pip
 
-FROM setup as build
-
-RUN apt update && \
-    apt install -y git python3-dev
-
-RUN python3.9 -m pip install --no-cache-dir build
+FROM setup as install
 
 COPY requirements.txt .
 RUN python3.9 -m pip install --no-cache-dir -r requirements.txt
 
-COPY . .
-RUN python3.9 -m build && \
-    python3.9 -m pip install --no-cache-dir dist/*.whl
+COPY dist/ dist/
+RUN python3.9 -m pip install --no-cache-dir dist/*.whl
 
 FROM setup
 RUN R -e 'install.packages(c("isa2", "biclust"), repos="https://cloud.r-project.org/")'

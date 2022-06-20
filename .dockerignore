@@ -1,2 +1,8 @@
 .dockerignore
 Dockerfile
+dist
+src/biclustlib.egg-info
+.idea
+**/.DS_store
+venv
+.github
