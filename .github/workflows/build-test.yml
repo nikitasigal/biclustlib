@@ -116,7 +116,7 @@ jobs:
           message: |
             New commit in ${{ github.repository }}
             
-            Branch: $GITHUB_REF_NAME
+            Branch: ${{ env.GITHUB_REF_NAME }} 
             Author: ${{ github.actor }}
             Commit message: ${{ github.event.commits[0].message }}
             
@@ -133,7 +133,7 @@ jobs:
           message: |
             New PR in ${{ github.repository }}
 
-            Branch: $GITHUB_REF_NAME
+            Branch: ${{ env.GITHUB_REF_NAME }} 
             Author: ${{ github.actor }}
             Title: ${{ github.event.pull_request.title }}
 

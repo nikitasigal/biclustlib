@@ -44,7 +44,7 @@ jobs:
           context: .
           file: .github/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/biclustlib:latest, ${{ secrets.DOCKERHUB_USERNAME }}/biclustlib:$GITHUB_REF_NAME
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/biclustlib:latest, ${{ secrets.DOCKERHUB_USERNAME }}/biclustlib:${{ env.GITHUB_REF_NAME }}
 
   testpypi:
     name: Publish the library on TestPyPI
@@ -75,7 +75,7 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           to: ${{ secrets.TELEGRAM_TO }}
           message: |
-            New release $GITHUB_REF_NAME in ${{ github.repository }}
+            New release ${{ env.GITHUB_REF_NAME }} in ${{ github.repository }}
             Author: ${{ github.actor }}
             
             CI status: ${{ needs.check.result }}
