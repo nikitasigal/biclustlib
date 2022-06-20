@@ -107,6 +107,10 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - name: Extract branch
+        id: extract_branch
+        run: echo "::set-output name=branch::$(echo ${GITHUB_REF##*/})"
+
       - name: Send notification on push
         if: github.event_name == 'push'
         uses: appleboy/telegram-action@master
@@ -116,7 +120,7 @@ jobs:
           message: |
             New commit in ${{ github.repository }}
             
-            Branch: ${{ env.GITHUB_REF_NAME }} 
+            Branch: ${{ steps.extract_branch.outputs.branch }} 
             Author: ${{ github.actor }}
             Commit message: ${{ github.event.commits[0].message }}
             
@@ -133,7 +137,7 @@ jobs:
           message: |
             New PR in ${{ github.repository }}
 
-            Branch: ${{ env.GITHUB_REF_NAME }} 
+            Branch: ${{ steps.extract_branch.outputs.branch }} 
             Author: ${{ github.actor }}
             Title: ${{ github.event.pull_request.title }}
 
