@@ -10,7 +10,7 @@ FROM setup as install
 COPY requirements.txt .
 RUN python3.9 -m pip install --no-cache-dir -r requirements.txt
 
-COPY dist/ dist/
+COPY dist dist
 RUN python3.9 -m pip install --no-cache-dir dist/*.whl
 
 FROM setup
