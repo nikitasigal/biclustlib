@@ -18,6 +18,6 @@ RUN R -e 'install.packages(c("isa2", "biclust"), repos="https://cloud.r-project.
 
 WORKDIR /biclust_sandbox
 COPY example.py .
-COPY --from=build /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
+COPY --from=install /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
 
 ENTRYPOINT ["/bin/bash"]
